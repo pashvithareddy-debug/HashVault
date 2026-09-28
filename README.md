@@ -1,13 +1,8 @@
-````markdown
 # 🔐 HashVault
 
 > **Verify file integrity. Detect changes. Protect your data.**
 
 HashVault is a lightweight Python command-line security tool that generates and verifies **SHA-256 cryptographic hashes** for files.
-
-It can be used to create a unique checksum for a file and later verify whether the file has been modified since the original hash was generated.
-
----
 
 ## ✨ Features
 
@@ -168,4 +163,4 @@ See the [`LICENSE`](LICENSE) file for details.
 Built with Python.
 
 </div>
-```
+
