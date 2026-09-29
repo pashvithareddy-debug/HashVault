@@ -1,0 +1,8 @@
+# Copy to ./hashvault.toml (or pass --config). CLI flags override these values.
+algorithm = "sha256"      # sha256, sha512, sha3-256, sha3-512, blake2b, blake2s (md5/sha1 are legacy)
+chunk_size = "1MB"        # read size when streaming files
+follow_symlinks = false
+
+[scan]
+use_default_excludes = true   # .git, .venv, __pycache__, node_modules, .DS_Store, ...
+exclude = ["*.log", "build", "dist"]
