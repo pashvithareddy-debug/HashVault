@@ -4,11 +4,20 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sys
+import time
+from types import TracebackType
 from typing import Any, TextIO
 
 from hashvault.algorithms import get_algorithm
-from hashvault.models import ChangeStatus, HashResult, ScanResult, VerificationResult
+from hashvault.models import (
+    ChangeStatus,
+    HashResult,
+    ScanResult,
+    SignatureResult,
+    VerificationResult,
+)
 
 RULE = "─" * 44
 _COLORS = {"green": "32", "red": "31", "yellow": "33", "cyan": "36", "dim": "2", "bold": "1"}
@@ -122,3 +131,66 @@ def render_scan(result: ScanResult, verbose: bool, color: bool) -> str:
 
 def eprint(*args: object) -> None:
     print(*args, file=sys.stderr)
+
+
+def render_signature(r: SignatureResult, color: bool) -> str:
+    if r.valid:
+        status = paint("✓ VALID", "green", color)
+        tail = ["Trust      : manifest was signed by the supplied public key"]
+    else:
+        status = paint("✗ INVALID", "red", color)
+        tail = [f"Reason     : {r.reason}", "Trust      : DO NOT TRUST this manifest"]
+    return "\n".join(
+        [
+            "HashVault Manifest Signature",
+            RULE,
+            f"Manifest   : {r.manifest}",
+            f"Signature  : {r.signature_file}",
+            f"Key ID     : {r.key_id[:16]}…",
+            "",
+            f"Status     : {status}",
+            *tail,
+        ]
+    )
+
+
+class Progress:
+    """Single-line progress indicator on a terminal; a silent no-op when disabled."""
+
+    def __init__(self, stream: TextIO, enabled: bool, min_interval: float = 0.05) -> None:
+        self.stream, self.enabled, self.min_interval = stream, enabled, min_interval
+        self._last: float | None = None
+        self._shown = False
+
+    def __call__(self, done: int, total: int, name: str) -> None:
+        if not self.enabled:
+            return
+        now = time.monotonic()
+        if done < total and self._last is not None and now - self._last < self.min_interval:
+            return
+        self._last = now
+        width = shutil.get_terminal_size((80, 20)).columns - 1
+        line = f"Hashing {done}/{total} files  {name}"
+        if len(line) > width:
+            line = line[: width - 1] + "…"
+        self.stream.write("\r" + line.ljust(width))
+        self.stream.flush()
+        self._shown = True
+
+    def clear(self) -> None:
+        if self.enabled and self._shown:
+            width = shutil.get_terminal_size((80, 20)).columns - 1
+            self.stream.write("\r" + " " * width + "\r")
+            self.stream.flush()
+            self._shown = False
+
+    def __enter__(self) -> Progress:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        self.clear()

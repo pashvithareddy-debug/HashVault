@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 
@@ -53,9 +54,17 @@ def hash_file(
     view = memoryview(buf)
     try:
         with open(p, "rb", buffering=0) as f:
+            before = os.fstat(f.fileno())
             while n := f.readinto(view):
                 hasher.update(view[:n])
                 total += n
+            after = os.fstat(f.fileno())
     except OSError as exc:
         raise FileError(f"cannot read {p}: {exc.strerror or exc}") from exc
+    # A file modified mid-read yields a digest of a state that never existed on disk.
+    if (
+        (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns)
+        or total != after.st_size
+    ):
+        raise FileError(f"{p} changed while it was being hashed; the digest would be unreliable")
     return HashResult(str(p), alg.name, hasher.hexdigest(), total)

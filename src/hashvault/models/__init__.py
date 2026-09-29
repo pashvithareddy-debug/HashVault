@@ -4,6 +4,7 @@ from hashvault.models.results import (
     HashResult,
     Manifest,
     ScanResult,
+    SignatureResult,
     VerificationResult,
 )
 
@@ -13,5 +14,6 @@ __all__ = [
     "HashResult",
     "Manifest",
     "ScanResult",
+    "SignatureResult",
     "VerificationResult",
 ]

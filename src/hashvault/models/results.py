@@ -91,6 +91,26 @@ class Manifest:
         }
 
 
+@dataclass(frozen=True)
+class SignatureResult:
+    manifest: str
+    signature_file: str
+    valid: bool
+    key_id: str  # fingerprint of the public key used for verification
+    reason: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {
+            "status": "signature_valid" if self.valid else "signature_invalid",
+            "manifest": self.manifest,
+            "signature_file": self.signature_file,
+            "key_id": self.key_id,
+        }
+        if self.reason:
+            d["reason"] = self.reason
+        return d
+
+
 @dataclass
 class ScanResult:
     root: str

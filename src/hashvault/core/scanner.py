@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 
 from hashvault.algorithms import get_algorithm
@@ -14,6 +14,8 @@ from hashvault.utils.filesystem import walk_files
 
 log = logging.getLogger(__name__)
 
+ProgressCallback = Callable[[int, int, str], None]  # (files_done, files_total, current_path)
+
 
 def snapshot(
     root: Path,
@@ -22,13 +24,17 @@ def snapshot(
     follow_symlinks: bool = False,
     chunk_size: int | str = DEFAULT_CHUNK_SIZE,
     skip: Iterable[Path] = (),
+    progress: ProgressCallback | None = None,
 ) -> dict[str, str]:
     """Hash every eligible file under root. Returns {posix_relative_path: hex_digest}."""
     alg = get_algorithm(algorithm)
+    entries = list(walk_files(root, exclude, follow_symlinks, skip))
     files: dict[str, str] = {}
-    for rel, full in walk_files(root, exclude, follow_symlinks, skip):
+    for i, (rel, full) in enumerate(entries, 1):
         log.debug("hashing %s", rel)
         files[rel] = hash_file(full, alg.name, chunk_size).digest
+        if progress:
+            progress(i, len(entries), rel)
     log.info("hashed %d files under %s", len(files), root)
     return files
 
@@ -72,10 +78,11 @@ def scan_directory(
     follow_symlinks: bool = False,
     chunk_size: int | str = DEFAULT_CHUNK_SIZE,
     skip: Iterable[Path] = (),
+    progress: ProgressCallback | None = None,
 ) -> ScanResult:
     """Scan root. With a baseline, classify changes; without one, return an inventory."""
     alg = get_algorithm(algorithm)
-    current = snapshot(root, alg.name, exclude, follow_symlinks, chunk_size, skip)
+    current = snapshot(root, alg.name, exclude, follow_symlinks, chunk_size, skip, progress)
     if baseline is None:
         changes = [
             FileChange(p, ChangeStatus.UNCHANGED, None, d) for p, d in sorted(current.items())

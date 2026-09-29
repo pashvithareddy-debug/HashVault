@@ -18,16 +18,19 @@ classifiers = [
     "Topic :: System :: Filesystems",
     "Typing :: Typed",
 ]
-dependencies = []  # standard library only
+dependencies = []  # core is standard library only; signing is an optional extra
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.6", "mypy>=1.10", "build>=1.2"]
+signing = ["cryptography>=42"]  # Ed25519 manifest signatures
+dev = ["cryptography>=42", "pytest>=8", "pytest-cov>=5", "ruff>=0.6", "mypy>=1.10", "build>=1.2", "twine>=5"]
 
 [project.scripts]
 hashvault = "hashvault.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/pashvithareddy-debug/HashVault"
+Issues = "https://github.com/pashvithareddy-debug/HashVault/issues"
+Changelog = "https://github.com/pashvithareddy-debug/HashVault/blob/main/CHANGELOG.md"
 
 [tool.setuptools.dynamic]
 version = { attr = "hashvault.__version__" }
@@ -52,6 +55,7 @@ show_missing = true
 
 [tool.ruff]
 line-length = 110
+extend-exclude = ["build"]
 target-version = "py311"
 src = ["src", "tests"]
 

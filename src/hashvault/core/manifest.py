@@ -13,7 +13,7 @@ from typing import Any
 
 from hashvault.algorithms import get_algorithm
 from hashvault.core.hasher import DEFAULT_CHUNK_SIZE
-from hashvault.core.scanner import snapshot
+from hashvault.core.scanner import ProgressCallback, snapshot
 from hashvault.errors import ManifestError, UsageError
 from hashvault.models import Manifest
 
@@ -28,10 +28,11 @@ def create_manifest(
     follow_symlinks: bool = False,
     chunk_size: int | str = DEFAULT_CHUNK_SIZE,
     skip: Iterable[Path] = (),
+    progress: ProgressCallback | None = None,
 ) -> Manifest:
     alg = get_algorithm(algorithm)
     patterns = tuple(exclude)
-    files = snapshot(root, alg.name, patterns, follow_symlinks, chunk_size, skip)
+    files = snapshot(root, alg.name, patterns, follow_symlinks, chunk_size, skip, progress)
     created = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     return Manifest(alg.name, files, created, MANIFEST_VERSION, patterns, follow_symlinks)
 
@@ -62,18 +63,30 @@ def _safe_relative(path: str) -> bool:
     return ".." not in PurePosixPath(path).parts
 
 
-def load_manifest(path: Path) -> Manifest:
-    """Load and strictly validate a manifest. Never trusts paths or digests blindly."""
+def read_manifest_bytes(path: Path) -> bytes:
+    """Read a manifest's exact bytes (these are the bytes that get signed and verified)."""
     try:
-        raw = path.read_text(encoding="utf-8")
+        return path.read_bytes()
     except FileNotFoundError:
         raise ManifestError(f"manifest not found: {path}") from None
-    except (OSError, UnicodeDecodeError) as exc:
-        raise ManifestError(f"cannot read manifest {path}: {exc}") from exc
+    except OSError as exc:
+        raise ManifestError(f"cannot read manifest {path}: {exc.strerror or exc}") from exc
+
+
+def load_manifest(path: Path) -> Manifest:
+    return parse_manifest(read_manifest_bytes(path), path)
+
+
+def parse_manifest(raw: bytes, source: Path | str = "<manifest>") -> Manifest:
+    """Strictly validate manifest bytes. Never trusts paths or digests blindly."""
     try:
-        data: Any = json.loads(raw)
+        data: Any = json.loads(raw.decode("utf-8"))
+    except UnicodeDecodeError as exc:
+        raise ManifestError(f"manifest {source} is not valid UTF-8") from exc
     except json.JSONDecodeError as exc:
-        raise ManifestError(f"manifest {path} is not valid JSON: {exc}") from exc
+        raise ManifestError(f"manifest {source} is not valid JSON: {exc}") from exc
+    except RecursionError:
+        raise ManifestError(f"manifest {source} is nested too deeply") from None
 
     if not isinstance(data, dict):
         raise ManifestError("manifest must be a JSON object")

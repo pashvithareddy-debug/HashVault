@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.0.0]
+### Added
+- **Signed manifests (Ed25519):** `keygen`, `manifest sign`, `manifest verify-signature`, and
+  `--public-key` on `manifest verify` / `scan`. Optional extra: `pip install "hashvault[signing]"`.
+- Progress indicator for large scans (terminal only; silent with `--json`, `--quiet`, pipes).
+- Detection of files that change while being hashed (reported as an error instead of a bogus digest).
+- Security-hardening tests: symlink attacks, hostile manifests, permission failures, concurrent writers,
+  malformed config, >2 GiB files, bounded memory.
+- End-to-end subprocess tests of the full hash → verify → manifest → tamper → detect workflow, signed and unsigned.
+- Release workflow: tag/version check, `twine check`, GitHub Release, PyPI trusted publishing.
+- Measured benchmark results in `docs/benchmarks.md`.
+
+### Changed
+- The manifest and its `.sig` file are never reported as added files in scans.
+- `load_manifest` is split into `read_manifest_bytes` + `parse_manifest` so signatures cover the exact bytes parsed.
+
 ## [2.0.0]
 ### Added
 - Package layout (`src/hashvault`) with `python -m hashvault` and `hashvault` console script.

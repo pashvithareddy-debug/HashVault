@@ -10,7 +10,8 @@ Core services (core/)
   ├── hasher.py            streaming file hashing, chunk-size parsing
   ├── verifier.py          digest validation + constant-time comparison
   ├── scanner.py           snapshot(), compare() change classification, scan_directory()
-  └── manifest.py          create / write (atomic) / load (strictly validated)
+  ├── manifest.py          create / write (atomic) / read bytes / parse (strictly validated)
+  └── signing.py           optional Ed25519 keygen, detached sign/verify (lazy-imports cryptography)
   │
   ├── algorithms/registry  supported algorithms, legacy flags
   ├── models/results.py    dataclasses: HashResult, VerificationResult, FileChange, ScanResult, Manifest
@@ -26,6 +27,10 @@ Core services (core/)
   the original scan. CLI `--exclude` can add exclusions on verify but not remove recorded ones.
 - **Deterministic output:** directories and files are walked in sorted order and manifests are written
   with sorted keys, so identical trees produce identical manifests (apart from `created_at`).
+- **Optional dependency, isolated.** `cryptography` is imported lazily inside `signing.py` only; without it every
+  other command works and signing commands fail with an install hint.
+- **Verify-then-parse on the same bytes.** The manifest is read once; the signature is checked over those bytes
+  and the same bytes are parsed, so there is no check/use race.
 - **`scan` vs `manifest verify`:** both share one code path. `scan DIR` uses `DIR/hashvault.manifest.json`
   if present (or `--baseline`); with no baseline it prints an inventory.
 

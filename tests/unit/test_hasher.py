@@ -67,7 +67,9 @@ class HashFileTests(TempDirTestCase):
         with self.assertRaises(FileError):
             hash_file(self.tmp)
 
-    @unittest.skipIf(os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0), "needs POSIX non-root")
+    @unittest.skipIf(
+        os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0), "needs POSIX non-root"
+    )
     def test_permission_denied(self):
         p = self.write("secret", b"x")
         p.chmod(0)

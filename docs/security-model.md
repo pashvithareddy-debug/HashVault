@@ -22,7 +22,32 @@ Mitigations available today:
   and check it with `hashvault verify`.
 - Keep the manifest in version control with signed commits.
 
-Not implemented (possible future work): digitally signed manifests with public-key verification.
+- **Sign the manifest** (v3, below). This is the mitigation that actually removes the trust problem.
+
+## Signed manifests (Ed25519)
+```bash
+hashvault keygen vault                                   # vault.key (private, 0600) + vault.pub
+hashvault manifest create ./project
+hashvault manifest sign ./project/hashvault.manifest.json --key vault.key
+hashvault manifest verify ./project/hashvault.manifest.json --public-key vault.pub
+```
+An attacker who edits files **and** regenerates the manifest cannot produce a valid signature without the
+private key, so `--public-key` verification fails (exit 1) even though the unsigned check would pass.
+
+Design and limits:
+- The signature covers the manifest's **exact bytes** (detached `.sig` file); there is no canonical-JSON
+  step to get wrong. HashVault reads the manifest once and verifies and parses those same bytes, so the
+  file cannot be swapped between check and use.
+- Only the `signature` field is trusted. `key_id` and `manifest_sha256` in the `.sig` file are hints; a forged
+  `key_id` cannot make an invalid signature verify (tested).
+- Trust ultimately rests on **how you obtain the public key**. Distribute it out-of-band (not next to the
+  manifest). If an attacker can replace the public key you verify with, signing gives no protection.
+- Private keys are unencrypted PEM files created with mode 0600; HashVault warns if permissions are looser.
+  Keep the key off the machine being monitored, ideally offline or in a hardware token/secret store.
+- Signing needs the optional extra: `pip install "hashvault[signing]"` (uses the `cryptography` package).
+  The core tool stays dependency-free.
+- No key revocation, rotation policy or timestamping. A validly signed but *old* manifest will verify (replay
+  of a stale baseline). Compare `created_at` or re-sign on a schedule if that matters to you.
 
 ## Algorithm choices
 | Algorithm | Status |
@@ -45,5 +70,8 @@ substitute it without changing the digest.
 - Files are read in fixed-size chunks; memory use is bounded by the chunk size, not file size.
 - Rename detection only reports an unambiguous 1:1 match of a deleted and an added file with the
   same digest. Ambiguous cases are shown as added + deleted.
-- A file changing *while it is being hashed* yields a digest of whatever bytes were read; scan
-  quiescent data for meaningful results.
+- A file that changes *while it is being hashed* (size or mtime differs before/after the read) is reported
+  as an error (exit 3) instead of producing a digest of a state that never existed on disk.
+  Changes that preserve both size and mtime within one read cannot be detected this way.
+- Hashing follows the *current* state of the path: the scanner never opens paths named in a manifest, so a
+  hostile manifest or a symlink cannot make HashVault read files outside the scanned root.
