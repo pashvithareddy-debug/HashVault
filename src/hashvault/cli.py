@@ -97,8 +97,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hashvault",
         description="HashVault — file integrity security CLI.",
-        epilog="Exit codes: 0 ok, 1 integrity mismatch, 2 usage error, "
-        "3 file error, 4 manifest error.",
+        epilog="Exit codes: 0 ok, 1 integrity mismatch, 2 usage error, 3 file error, 4 manifest error.",
     )
     parser.add_argument("--version", action="version", version=f"hashvault {__version__}")
     sub = parser.add_subparsers(dest="command", metavar="<command>", required=True)
@@ -124,9 +123,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("manifest", help="create or verify integrity manifests")
     msub = p.add_subparsers(dest="manifest_command", metavar="<action>", required=True)
-    mc = msub.add_parser(
-        "create", parents=[common, hashing, scanning], help="create a baseline manifest"
-    )
+    mc = msub.add_parser("create", parents=[common, hashing, scanning], help="create a baseline manifest")
     mc.add_argument("directory", type=Path)
     mc.add_argument(
         "-o", "--output", type=Path, help=f"output file (default: <directory>/{DEFAULT_MANIFEST_NAME})"
@@ -144,9 +141,7 @@ def build_parser() -> argparse.ArgumentParser:
     ms.add_argument("--key", type=Path, required=True, help="private key (from 'hashvault keygen')")
     ms.add_argument("-o", "--output", type=Path, help="signature file (default: <manifest>.sig)")
     ms.add_argument("--force", action="store_true", help="overwrite an existing signature")
-    mvs = msub.add_parser(
-        "verify-signature", parents=[common], help="check a manifest's signature only"
-    )
+    mvs = msub.add_parser("verify-signature", parents=[common], help="check a manifest's signature only")
     mvs.add_argument("manifest", type=Path)
     mvs.add_argument("--public-key", type=Path, required=True)
     mvs.add_argument("--signature", type=Path, help="signature file (default: <manifest>.sig)")
@@ -172,9 +167,7 @@ def _setup_logging(args: argparse.Namespace) -> None:
 
 def _warn_legacy(alg: Algorithm, args: argparse.Namespace) -> None:
     if alg.legacy and not args.quiet:
-        output.eprint(
-            f"warning: {alg.display} is not recommended for security-sensitive integrity checks"
-        )
+        output.eprint(f"warning: {alg.display} is not recommended for security-sensitive integrity checks")
 
 
 def _emit(args: argparse.Namespace, data: object, text: str) -> None:
@@ -263,9 +256,7 @@ def _scan_against(
 
     requested = getattr(args, "algorithm", None)
     if requested and get_algorithm(requested).name != manifest.algorithm:
-        raise UsageError(
-            f"manifest uses {manifest.algorithm}; cannot compare with --algorithm {requested}"
-        )
+        raise UsageError(f"manifest uses {manifest.algorithm}; cannot compare with --algorithm {requested}")
     alg = get_algorithm(manifest.algorithm)
     _warn_legacy(alg, args)
     # Rules recorded in the manifest apply; CLI --exclude can only add to them.
@@ -402,11 +393,7 @@ def main(argv: list[str] | None = None) -> int:
         return _dispatch(args, settings)
     except HashVaultError as exc:
         if args.json:
-            print(
-                output.dump_json(
-                    {"status": "error", "error": str(exc), "exit_code": exc.exit_code}
-                )
-            )
+            print(output.dump_json({"status": "error", "error": str(exc), "exit_code": exc.exit_code}))
         else:
             output.eprint(f"error: {exc}")
         return exc.exit_code

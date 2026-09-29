@@ -55,9 +55,7 @@ class ScanTests(TempDirTestCase):
 
         r = scan_directory(self.tmp, "sha256", baseline=base)
         self.assertEqual(r.status, "changes_detected")
-        self.assertEqual(
-            r.summary, {"unchanged": 1, "modified": 1, "added": 1, "deleted": 1, "renamed": 0}
-        )
+        self.assertEqual(r.summary, {"unchanged": 1, "modified": 1, "added": 1, "deleted": 1, "renamed": 0})
 
     def test_clean(self):
         self.write("a", "a")

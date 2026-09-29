@@ -84,8 +84,6 @@ def scan_directory(
     alg = get_algorithm(algorithm)
     current = snapshot(root, alg.name, exclude, follow_symlinks, chunk_size, skip, progress)
     if baseline is None:
-        changes = [
-            FileChange(p, ChangeStatus.UNCHANGED, None, d) for p, d in sorted(current.items())
-        ]
+        changes = [FileChange(p, ChangeStatus.UNCHANGED, None, d) for p, d in sorted(current.items())]
         return ScanResult(str(root), alg.name, changes, has_baseline=False)
     return ScanResult(str(root), alg.name, compare(baseline, current), has_baseline=True)

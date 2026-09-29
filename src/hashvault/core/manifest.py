@@ -7,7 +7,7 @@ import os
 import string
 import tempfile
 from collections.abc import Iterable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
@@ -33,7 +33,7 @@ def create_manifest(
     alg = get_algorithm(algorithm)
     patterns = tuple(exclude)
     files = snapshot(root, alg.name, patterns, follow_symlinks, chunk_size, skip, progress)
-    created = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    created = datetime.now(UTC).replace(microsecond=0).isoformat()
     return Manifest(alg.name, files, created, MANIFEST_VERSION, patterns, follow_symlinks)
 
 

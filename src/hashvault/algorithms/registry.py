@@ -50,7 +50,7 @@ def get_algorithm(name: str) -> Algorithm:
         raise UsageError(f"unsupported algorithm {name!r} (supported: {supported})") from None
 
 
-def new_hasher(algorithm: Algorithm) -> "hashlib._Hash":
+def new_hasher(algorithm: Algorithm) -> hashlib._Hash:
     # usedforsecurity=False lets legacy digests work on FIPS-restricted builds;
     # they remain labelled legacy and are never the default.
     return hashlib.new(algorithm.hashlib_name, usedforsecurity=not algorithm.legacy)

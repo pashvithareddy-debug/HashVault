@@ -39,9 +39,7 @@ class WalkTests(TempDirTestCase):
         target = self.write("real.txt", "x")
         os.symlink(target, self.tmp / "link.txt")
         self.assertEqual([r for r, _ in walk_files(self.tmp)], ["real.txt"])
-        self.assertEqual(
-            [r for r, _ in walk_files(self.tmp, follow_symlinks=True)], ["link.txt", "real.txt"]
-        )
+        self.assertEqual([r for r, _ in walk_files(self.tmp, follow_symlinks=True)], ["link.txt", "real.txt"])
 
     @unittest.skipIf(os.name == "nt", "symlinks need privileges on Windows")
     def test_symlink_loop_terminates(self):

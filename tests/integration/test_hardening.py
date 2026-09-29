@@ -45,7 +45,10 @@ class SymlinkAttackTests(TempDirTestCase):
                     "version": "1.0",
                     "algorithm": "sha256",
                     "created_at": "x",
-                    "files": {"evil/secret.txt": sha256(b"TOP SECRET"), "real.txt": sha256(b"real")},
+                    "files": {
+                        "evil/secret.txt": sha256(b"TOP SECRET"),
+                        "real.txt": sha256(b"real"),
+                    },
                 }
             ),
         )
@@ -53,7 +56,7 @@ class SymlinkAttackTests(TempDirTestCase):
         data = json.loads(out)
         statuses = {f["path"]: f["status"] for f in data["files"]}
         self.assertEqual(code, 1)
-        self.assertEqual(statuses["evil/secret.txt"], "deleted")  # not "unchanged"
+        self.assertEqual(statuses["evil/secret.txt"], "deleted")
         self.assertEqual(statuses["real.txt"], "unchanged")
 
     def test_swapping_file_for_symlink_is_detected(self):
@@ -80,22 +83,50 @@ class MaliciousManifestTests(TempDirTestCase):
 
     def test_null_and_control_characters_in_paths(self):
         h = sha256(b"x")
-        m = parse_manifest(json.dumps({"version": "1.0", "algorithm": "sha256", "created_at": "",
-                                       "files": {"a\nb": h}}).encode())  # fmt: skip
-        self.assertIn("a\nb", m.files)  # accepted as data, never executed or used as a path to open
+        m = parse_manifest(
+            json.dumps(
+                {
+                    "version": "1.0",
+                    "algorithm": "sha256",
+                    "created_at": "",
+                    "files": {"a\nb": h},
+                }
+            ).encode()
+        )
+        self.assertIn("a\nb", m.files)
 
     def test_traversal_variants_rejected_via_cli(self):
         for evil in ("../x", "/abs", "a/../../b", "..\\x", "C:\\x"):
             m = self.write(
                 "m.json",
-                json.dumps({"version": "1.0", "algorithm": "sha256", "created_at": "",
-                            "files": {evil: sha256(b"x")}}),
-            )  # fmt: skip
-            self.assertEqual(run("manifest", "verify", str(m), "--root", str(self.tmp))[0], 4, evil)
+                json.dumps(
+                    {
+                        "version": "1.0",
+                        "algorithm": "sha256",
+                        "created_at": "",
+                        "files": {evil: sha256(b"x")},
+                    }
+                ),
+            )
+            self.assertEqual(
+                run("manifest", "verify", str(m), "--root", str(self.tmp))[0],
+                4,
+                evil,
+            )
 
     def test_exclude_list_cannot_be_smuggled_in_as_wrong_type(self):
-        m = self.write("m.json", json.dumps({"version": "1.0", "algorithm": "sha256",
-                                             "created_at": "", "files": {}, "exclude": [1]}))  # fmt: skip
+        m = self.write(
+            "m.json",
+            json.dumps(
+                {
+                    "version": "1.0",
+                    "algorithm": "sha256",
+                    "created_at": "",
+                    "files": {},
+                    "exclude": [1],
+                }
+            ),
+        )
         self.assertEqual(run("manifest", "verify", str(m))[0], 4)
 
 
@@ -136,7 +167,7 @@ class FailureModeTests(TempDirTestCase):
                 self.inner, self.done = inner, False
 
             def update(self, data):
-                if not self.done:  # simulate a writer appending after we started reading
+                if not self.done:
                     self.done = True
                     with open(p, "ab") as f:
                         f.write(b"B" * 10)
@@ -145,9 +176,11 @@ class FailureModeTests(TempDirTestCase):
             def hexdigest(self):
                 return self.inner.hexdigest()
 
-        with mock.patch.object(hasher, "new_hasher", lambda a: Tampering(real_new_hasher(a))):
-            with self.assertRaises(FileError) as ctx:
-                hash_file(p, chunk_size=1024)
+        with (
+            mock.patch.object(hasher, "new_hasher", lambda a: Tampering(real_new_hasher(a))),
+            self.assertRaises(FileError) as ctx,
+        ):
+            hash_file(p, chunk_size=1024)
         self.assertIn("changed while", str(ctx.exception))
 
     def test_concurrent_appends_never_yield_a_silently_wrong_digest(self):
@@ -167,7 +200,6 @@ class FailureModeTests(TempDirTestCase):
             for _ in range(20):
                 try:
                     r = hash_file(p, chunk_size=4096)
-                    # If it succeeded, the digest must match the size that was read
                     self.assertGreaterEqual(r.size, 1_000_000)
                     outcomes.add("ok")
                 except FileError:
@@ -175,14 +207,14 @@ class FailureModeTests(TempDirTestCase):
         finally:
             stop.set()
             t.join()
-        self.assertTrue(outcomes)  # never crashed with anything but FileError
+        self.assertTrue(outcomes)
 
 
 class LargeFileTests(TempDirTestCase):
     def test_memory_stays_bounded_regardless_of_file_size(self):
         p = self.tmp / "big.bin"
         with open(p, "wb") as f:
-            f.truncate(64 * 1024 * 1024)  # 64 MiB, sparse
+            f.truncate(64 * 1024 * 1024)
         tracemalloc.start()
         try:
             r = hash_file(p, chunk_size=1024 * 1024)
@@ -190,11 +222,11 @@ class LargeFileTests(TempDirTestCase):
         finally:
             tracemalloc.stop()
         self.assertEqual(r.size, 64 * 1024 * 1024)
-        self.assertLess(peak, 4 * 1024 * 1024)  # ~1 chunk, nowhere near 64 MiB
+        self.assertLess(peak, 4 * 1024 * 1024)
 
     @unittest.skipIf(os.environ.get("HASHVAULT_SKIP_SLOW"), "HASHVAULT_SKIP_SLOW set")
     def test_file_larger_than_2_gib(self):
-        size = 2 * 1024**3 + 12345  # crosses the 32-bit signed boundary
+        size = 2 * 1024**3 + 12345
         p = self.tmp / "huge.bin"
         try:
             with open(p, "wb") as f:

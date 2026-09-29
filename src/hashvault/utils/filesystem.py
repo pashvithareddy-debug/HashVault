@@ -73,8 +73,7 @@ def walk_files(
         dirnames[:] = sorted(
             d
             for d in dirnames
-            if not is_excluded(prefix + d, patterns)
-            and (follow_symlinks or not (base / d).is_symlink())
+            if not is_excluded(prefix + d, patterns) and (follow_symlinks or not (base / d).is_symlink())
         )
         for name in sorted(filenames):
             rel = prefix + name

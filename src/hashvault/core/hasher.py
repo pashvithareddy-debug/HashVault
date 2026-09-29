@@ -62,9 +62,6 @@ def hash_file(
     except OSError as exc:
         raise FileError(f"cannot read {p}: {exc.strerror or exc}") from exc
     # A file modified mid-read yields a digest of a state that never existed on disk.
-    if (
-        (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns)
-        or total != after.st_size
-    ):
+    if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns) or total != after.st_size:
         raise FileError(f"{p} changed while it was being hashed; the digest would be unreliable")
     return HashResult(str(p), alg.name, hasher.hexdigest(), total)
