@@ -15,11 +15,27 @@ SRC = str(Path(__file__).resolve().parents[2] / "src")
 
 def hv(*args: str, cwd=None) -> subprocess.CompletedProcess[str]:
     env = {**os.environ, "PYTHONPATH": SRC, "NO_COLOR": "1"}
-    return subprocess.run(
-        [sys.executable, "-m", "hashvault", *args],
-        capture_output=True, text=True, env=env, cwd=cwd,
-    )  # fmt: skip
 
+    result = subprocess.run(
+        [sys.executable, "-m", "hashvault", *args],
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=cwd,
+    )
+
+    if result.returncode != 0:
+        print(
+            "\n--- HASHVAULT SUBPROCESS FAILURE ---\n"
+            f"command: {args!r}\n"
+            f"returncode: {result.returncode}\n"
+            f"stdout:\n{result.stdout}\n"
+            f"stderr:\n{result.stderr}\n"
+            "--- END HASHVAULT SUBPROCESS FAILURE ---",
+            flush=True,
+        )
+
+    return result
 
 class FullWorkflowTests(TempDirTestCase):
     def test_hash_verify_manifest_modify_detect(self):
