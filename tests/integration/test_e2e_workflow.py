@@ -24,19 +24,7 @@ def hv(*args: str, cwd=None) -> subprocess.CompletedProcess[str]:
         cwd=cwd,
     )
 
-    if result.returncode != 0:
-        print(
-            "\n--- HASHVAULT SUBPROCESS FAILURE ---\n"
-            f"command: {args!r}\n"
-            f"returncode: {result.returncode}\n"
-            f"stdout:\n{result.stdout}\n"
-            f"stderr:\n{result.stderr}\n"
-            "--- END HASHVAULT SUBPROCESS FAILURE ---",
-            flush=True,
-        )
-
     return result
-
 
 class FullWorkflowTests(TempDirTestCase):
     def test_hash_verify_manifest_modify_detect(self):
