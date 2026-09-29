@@ -26,6 +26,7 @@ def hv(*args: str, cwd=None) -> subprocess.CompletedProcess[str]:
 
     return result
 
+
 class FullWorkflowTests(TempDirTestCase):
     def test_hash_verify_manifest_modify_detect(self):
         project = self.tmp / "project"
